@@ -1,0 +1,6 @@
+--require test/setup.js
+--recursive
+--timeout 15000
+--reporter spec
+--colors
+--exit

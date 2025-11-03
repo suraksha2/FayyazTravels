@@ -1,0 +1,263 @@
+"use client"
+
+import { useEffect, useState } from 'react';
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Heart, Calendar, MapPin, Loader2 } from "lucide-react"
+import Link from 'next/link';
+import Image from 'next/image';
+import EnquiryModal from "@/components/EnquiryModal"
+import { useEnquiryModal } from "@/hooks/useEnquiryModal"
+import Footer from "@/components/Footer"
+import WhyBookSection from "@/components/WhyBookSection"
+
+interface Package {
+  id: string;
+  p_name: string;
+  p_content: string;
+  p_slug: string;
+  slug: string;
+  p_image?: string;
+  p_duration?: string;
+  p_cities?: string;
+  p_savings?: string;
+  p_seats_left?: string;
+  is_halal_friendly?: boolean;
+  is_top_selling?: boolean;
+}
+
+export default function ColombiaPackagesPage() {
+  const [packages, setPackages] = useState<Package[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { isOpen, modalData, openModal, closeModal } = useEnquiryModal();
+
+  useEffect(() => {
+    const fetchPackages = async () => {
+      try {
+        const response = await fetch('http://localhost:3003/destination/south-america/colombia');
+        if (!response.ok) {
+          throw new Error('Failed to fetch packages');
+        }
+        const data = await response.json();
+        setPackages(data);
+      } catch (err) {
+        console.error('Error fetching packages:', err);
+        setError('Failed to load packages. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPackages();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-[#002147]" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Error Loading Packages</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-white">
+      {/* Hero Section */}
+      <div className="relative h-screen">
+        <div 
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: "url('https://images.pexels.com/photos/2166553/pexels-photo-2166553.jpeg')"
+          }}
+        >
+          <div className="absolute inset-0 bg-black/40" />
+        </div>
+        
+        <div className="relative h-full flex flex-col items-center justify-center text-white text-center px-4">
+          <h1 className="text-[150px] font-bold leading-none tracking-tight mb-8">
+            COLOMBIA
+          </h1>
+          <p className="text-2xl max-w-2xl mx-auto mb-8">
+            Discover the vibrant culture and stunning landscapes of Colombia.
+          </p>
+          <Button 
+            onClick={() => openModal({
+              packageName: "Colombia Travel Packages",
+              packageType: "Country Specific",
+              destination: "Colombia"
+            })}
+            className="bg-white text-black hover:bg-white/90 text-lg px-8 py-6"
+          >
+            Enquire Now
+          </Button>
+        </div>
+      </div>
+
+      {/* Packages Grid */}
+      <section className="py-16 px-4 max-w-7xl mx-auto">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">Discover Colombia</h2>
+          <p className="text-gray-600 text-lg">
+            From vibrant cities to stunning coastlines, experience Colombia's wonders.
+          </p>
+        </div>
+
+        {packages.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500">No packages found for Colombia. Please check back later.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {packages.map((pkg) => (
+              <div key={pkg.id} className="bg-white rounded-xl overflow-hidden shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
+                <div className="relative">
+                  <div className="relative h-64 overflow-hidden">
+                    <img 
+                      src={pkg.p_image || 'https://images.pexels.com/photos/2166553/pexels-photo-2166553.jpeg'} 
+                      alt={pkg.p_name}
+                      className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                    
+                    <h3 className="absolute bottom-4 left-4 text-2xl font-bold text-white">
+                      {pkg.p_name}
+                    </h3>
+                  </div>
+
+                  <div className="absolute top-4 left-4 flex items-center gap-2">
+                    {pkg.is_top_selling && (
+                      <span className="bg-red-500 text-white px-3 py-1 rounded text-sm font-medium">
+                        Top Selling
+                      </span>
+                    )}
+                    <button className="bg-white/90 backdrop-blur-sm p-2 rounded-full hover:bg-white transition-all duration-300 hover:scale-110">
+                      <Heart className="w-5 h-5 text-gray-700 transition-colors hover:text-red-500" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-5">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="flex items-center gap-1.5 text-sm text-gray-700">
+                      <Calendar className="w-4 h-4" />
+                      <span>{pkg.p_duration || 'Duration TBA'}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-sm text-gray-700">
+                      <MapPin className="w-4 h-4" />
+                      <span>{pkg.p_cities || 'Multiple Cities'}</span>
+                    </div>
+                    {pkg.is_halal_friendly && (
+                      <span className="bg-green-500 text-white text-xs px-2.5 py-1 rounded font-medium">
+                        Halal Friendly
+                      </span>
+                    )}
+                  </div>
+
+                  {pkg.p_seats_left && (
+                    <div className="mb-4">
+                      <span className="inline-block bg-blue-500 text-white text-sm px-3 py-1 rounded font-medium">
+                        {pkg.p_seats_left} Seats Left
+                      </span>
+                    </div>
+                  )}
+
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                    {pkg.p_content || 'Discover the beauty and culture of Colombia with our expertly crafted travel packages.'}
+                  </p>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-sm text-gray-500 block">From</span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-bold text-gray-900">Contact Us</span>
+                      </div>
+                      {pkg.p_savings && (
+                        <span className="text-green-600 text-xs">You save {pkg.p_savings}</span>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Link href={`/packages/${pkg.p_slug || pkg.slug}`}>
+                        <Button variant="outline" className="px-4 py-2">
+                          Details
+                        </Button>
+                      </Link>
+                      <Button 
+                        onClick={() => openModal({
+                          packageName: pkg.p_name,
+                          packageType: "Colombia Package",
+                          destination: "Colombia"
+                        })}
+                        className="bg-[#002147] hover:bg-[#001a38] text-white px-6 py-2.5 rounded-lg font-medium transition-all duration-300 hover:shadow-lg"
+                      >
+                        Enquire Now
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Why Book with Us Section */}
+      <WhyBookSection />
+
+      {/* Newsletter Section */}
+      <section className="py-20 bg-[#8B1F41] text-white text-center">
+        <div className="max-w-2xl mx-auto px-4">
+          <h2 className="text-3xl font-semibold mb-6">
+            Sign Up for our Newsletter
+          </h2>
+          
+          <div className="mb-8">
+            <p className="text-2xl mb-2">Save upto</p>
+            <p className="text-4xl font-bold mb-4">S$ 4812.80*</p>
+            <p className="text-sm text-white/80">
+              Unlock Exclusive access to up coming packages and early bird discounts.
+            </p>
+          </div>
+
+          <div className="flex gap-2 max-w-md mx-auto mb-4">
+            <Input 
+              type="email" 
+              placeholder="Email" 
+              className="bg-white/20 border-white/30 text-white placeholder:text-white/60"
+            />
+            <Button className="bg-white text-[#8B1F41] hover:bg-white/90 px-8">
+              →
+            </Button>
+          </div>
+
+          <p className="text-sm text-white/60">
+            Terms and Conditions Apply*
+          </p>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <Footer />
+
+      {/* Enquiry Modal */}
+      <EnquiryModal 
+        isOpen={isOpen}
+        onClose={closeModal}
+        packageName={modalData.packageName}
+        packageType={modalData.packageType}
+        destination={modalData.destination}
+      />
+    </main>
+  )
+}

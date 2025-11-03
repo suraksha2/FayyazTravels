@@ -1,0 +1,848 @@
+// controllers/destinations.controller.js
+const db = require('../db');
+
+exports.getAll = (req, reply) => {
+  db.query('SELECT * FROM tbl_destinations WHERE status = 1', (err, results) => {
+    if (err) return reply.status(500).send(err);
+    reply.send(results);
+  });
+};
+
+exports.getById = (req, reply) => {
+  db.query('SELECT * FROM tbl_destinations WHERE id = ? AND status = 1', [req.params.id], (err, results) => {
+    if (err) return reply.status(500).send(err);
+    if (!results.length) return reply.status(404).send({ message: 'Destination not found' });
+    reply.send(results[0]);
+  });
+};
+
+exports.getBySlug = (req, reply) => {
+  db.query('SELECT * FROM tbl_destinations WHERE d_slug = ? AND status = 1', [req.params.slug], (err, results) => {
+    if (err) return reply.status(500).send(err);
+    if (!results.length) return reply.status(404).send({ message: 'Destination not found' });
+    reply.send(results[0]);
+  });
+};
+
+// Get packages for a specific destination
+exports.getPackagesByDestination = (req, reply) => {
+  const { slug } = req.params;
+  
+  // First get the destination to find country_id or destination name
+  db.query('SELECT * FROM tbl_destinations WHERE d_slug = ? AND status = 1', [slug], (err, destResults) => {
+    if (err) return reply.status(500).send(err);
+    if (!destResults.length) return reply.status(404).send({ message: 'Destination not found' });
+    
+    const destination = destResults[0];
+    
+    // Get packages for this destination
+    // We'll search by destination name in the package content or by country_id
+    const searchQuery = `
+      SELECT * FROM tbl_packages 
+      WHERE (p_content LIKE ? OR p_name LIKE ?) 
+      AND status = 1 
+      AND is_publish = 1
+    `;
+    
+    const searchTerm = `%${destination.d_name}%`;
+    
+    db.query(searchQuery, [searchTerm, searchTerm], (err, packageResults) => {
+      if (err) return reply.status(500).send(err);
+      
+      reply.send({
+        destination: destination,
+        packages: packageResults
+      });
+    });
+  });
+};
+
+// Get multi-city destinations (like Australia-New Zealand)
+exports.getMultiCityDestinations = (req, reply) => {
+  // For multi-city, we'll look for packages that have multiple country_ids
+  const query = `
+    SELECT DISTINCT p.*, 
+           GROUP_CONCAT(DISTINCT d.d_name) as destination_names,
+           GROUP_CONCAT(DISTINCT d.d_slug) as destination_slugs
+    FROM tbl_packages p
+    LEFT JOIN tbl_destinations d ON FIND_IN_SET(d.id, REPLACE(p.country_id, ',', ','))
+    WHERE p.country_id LIKE '%,%' 
+    AND p.status = 1 
+    AND p.is_publish = 1
+    GROUP BY p.id
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    reply.send(results);
+  });
+};
+
+// Get Anguilla packages
+exports.getAnguillaPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Anguilla%' OR p_content LIKE '%Anguilla%')
+    OR (p_name LIKE '%The Valley%' OR p_content LIKE '%The Valley%')
+    OR (p_name LIKE '%Shoal Bay%' OR p_content LIKE '%Shoal Bay%')
+    OR (p_name LIKE '%Caribbean%' OR p_content LIKE '%Caribbean%')
+    OR p_slug LIKE '%anguilla%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    // Add slug generation for each package
+    const packagesWithSlugs = results.map(pkg => ({
+      ...pkg,
+      slug: pkg.p_name ? pkg.p_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : `package-${pkg.id}`
+    }));
+    reply.send(packagesWithSlugs);
+  });
+};
+
+// Get Australia-New Zealand specific packages
+exports.getAustraliaNewZealandPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Australia%' AND p_name LIKE '%New Zealand%') 
+    OR (p_content LIKE '%Australia%' AND p_content LIKE '%New Zealand%')
+    OR p_slug LIKE '%australia%new%zealand%'
+    OR p_slug LIKE '%australia-new-zealand%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    reply.send(results);
+  });
+};
+
+// Get Anguilla packages
+exports.getAnguillaPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Anguilla%' OR p_content LIKE '%Anguilla%')
+    OR (p_name LIKE '%The Valley%' OR p_content LIKE '%The Valley%')
+    OR (p_name LIKE '%Shoal Bay%' OR p_content LIKE '%Shoal Bay%')
+    OR (p_name LIKE '%Caribbean%' OR p_content LIKE '%Caribbean%')
+    OR p_slug LIKE '%anguilla%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    // Add slug generation for each package
+    const packagesWithSlugs = results.map(pkg => ({
+      ...pkg,
+      slug: pkg.p_name ? pkg.p_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : `package-${pkg.id}`
+    }));
+    reply.send(packagesWithSlugs);
+  });
+};
+
+// Get Austria-Switzerland specific packages
+exports.getAustriaSwitzerlandPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Austria%' AND p_name LIKE '%Switzerland%') 
+    OR (p_content LIKE '%Austria%' AND p_content LIKE '%Switzerland%')
+    OR (p_name LIKE '%Austria%' OR p_name LIKE '%Switzerland%')
+    OR (p_content LIKE '%Austria%' OR p_content LIKE '%Switzerland%')
+    OR p_slug LIKE '%austria%switzerland%'
+    OR p_slug LIKE '%austria-switzerland%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    reply.send(results);
+  });
+};
+
+// Get Anguilla packages
+exports.getAnguillaPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Anguilla%' OR p_content LIKE '%Anguilla%')
+    OR (p_name LIKE '%The Valley%' OR p_content LIKE '%The Valley%')
+    OR (p_name LIKE '%Shoal Bay%' OR p_content LIKE '%Shoal Bay%')
+    OR (p_name LIKE '%Caribbean%' OR p_content LIKE '%Caribbean%')
+    OR p_slug LIKE '%anguilla%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    // Add slug generation for each package
+    const packagesWithSlugs = results.map(pkg => ({
+      ...pkg,
+      slug: pkg.p_name ? pkg.p_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : `package-${pkg.id}`
+    }));
+    reply.send(packagesWithSlugs);
+  });
+};
+
+// Get Bulgaria-Greece specific packages
+exports.getBulgariaGreecePackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Bulgaria%' AND p_name LIKE '%Greece%') 
+    OR (p_content LIKE '%Bulgaria%' AND p_content LIKE '%Greece%')
+    OR (p_name LIKE '%Bulgaria%' OR p_name LIKE '%Greece%')
+    OR (p_content LIKE '%Bulgaria%' OR p_content LIKE '%Greece%')
+    OR p_slug LIKE '%bulgaria%greece%'
+    OR p_slug LIKE '%bulgaria-greece%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    reply.send(results);
+  });
+};
+
+// Get Anguilla packages
+exports.getAnguillaPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Anguilla%' OR p_content LIKE '%Anguilla%')
+    OR (p_name LIKE '%The Valley%' OR p_content LIKE '%The Valley%')
+    OR (p_name LIKE '%Shoal Bay%' OR p_content LIKE '%Shoal Bay%')
+    OR (p_name LIKE '%Caribbean%' OR p_content LIKE '%Caribbean%')
+    OR p_slug LIKE '%anguilla%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    // Add slug generation for each package
+    const packagesWithSlugs = results.map(pkg => ({
+      ...pkg,
+      slug: pkg.p_name ? pkg.p_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : `package-${pkg.id}`
+    }));
+    reply.send(packagesWithSlugs);
+  });
+};
+
+// Get Panama-Costa Rica specific packages
+exports.getPanamaCostaRicaPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Panama%' AND p_name LIKE '%Costa Rica%') 
+    OR (p_content LIKE '%Panama%' AND p_content LIKE '%Costa Rica%')
+    OR (p_name LIKE '%Panama%' OR p_name LIKE '%Costa Rica%')
+    OR (p_content LIKE '%Panama%' OR p_content LIKE '%Costa Rica%')
+    OR p_slug LIKE '%panama%costa%rica%'
+    OR p_slug LIKE '%panama-costa-rica%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    reply.send(results);
+  });
+};
+
+// Get Anguilla packages
+exports.getAnguillaPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Anguilla%' OR p_content LIKE '%Anguilla%')
+    OR (p_name LIKE '%The Valley%' OR p_content LIKE '%The Valley%')
+    OR (p_name LIKE '%Shoal Bay%' OR p_content LIKE '%Shoal Bay%')
+    OR (p_name LIKE '%Caribbean%' OR p_content LIKE '%Caribbean%')
+    OR p_slug LIKE '%anguilla%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    // Add slug generation for each package
+    const packagesWithSlugs = results.map(pkg => ({
+      ...pkg,
+      slug: pkg.p_name ? pkg.p_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : `package-${pkg.id}`
+    }));
+    reply.send(packagesWithSlugs);
+  });
+};
+
+// Get Paris-Switzerland specific packages
+exports.getParisSwitzerlandPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Paris%' AND p_name LIKE '%Switzerland%') 
+    OR (p_content LIKE '%Paris%' AND p_content LIKE '%Switzerland%')
+    OR (p_name LIKE '%Paris%' OR p_name LIKE '%Switzerland%')
+    OR (p_content LIKE '%Paris%' OR p_content LIKE '%Switzerland%')
+    OR p_slug LIKE '%paris%switzerland%'
+    OR p_slug LIKE '%paris-switzerland%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    reply.send(results);
+  });
+};
+
+// Get Anguilla packages
+exports.getAnguillaPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Anguilla%' OR p_content LIKE '%Anguilla%')
+    OR (p_name LIKE '%The Valley%' OR p_content LIKE '%The Valley%')
+    OR (p_name LIKE '%Shoal Bay%' OR p_content LIKE '%Shoal Bay%')
+    OR (p_name LIKE '%Caribbean%' OR p_content LIKE '%Caribbean%')
+    OR p_slug LIKE '%anguilla%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    // Add slug generation for each package
+    const packagesWithSlugs = results.map(pkg => ({
+      ...pkg,
+      slug: pkg.p_name ? pkg.p_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : `package-${pkg.id}`
+    }));
+    reply.send(packagesWithSlugs);
+  });
+};
+
+// GROUP TOUR PACKAGES
+
+// Get Kashmir Group Tour packages
+exports.getKashmirGroupTourPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Kashmir%' OR p_content LIKE '%Kashmir%')
+    OR (p_name LIKE '%Srinagar%' OR p_content LIKE '%Srinagar%')
+    OR (p_name LIKE '%Gulmarg%' OR p_content LIKE '%Gulmarg%')
+    OR (p_name LIKE '%Pahalgam%' OR p_content LIKE '%Pahalgam%')
+    OR p_slug LIKE '%kashmir%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    reply.send(results);
+  });
+};
+
+// Get Anguilla packages
+exports.getAnguillaPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Anguilla%' OR p_content LIKE '%Anguilla%')
+    OR (p_name LIKE '%The Valley%' OR p_content LIKE '%The Valley%')
+    OR (p_name LIKE '%Shoal Bay%' OR p_content LIKE '%Shoal Bay%')
+    OR (p_name LIKE '%Caribbean%' OR p_content LIKE '%Caribbean%')
+    OR p_slug LIKE '%anguilla%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    // Add slug generation for each package
+    const packagesWithSlugs = results.map(pkg => ({
+      ...pkg,
+      slug: pkg.p_name ? pkg.p_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : `package-${pkg.id}`
+    }));
+    reply.send(packagesWithSlugs);
+  });
+};
+
+// Get North India Tour packages
+exports.getNorthIndiaGroupTourPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%North India%' OR p_content LIKE '%North India%')
+    OR (p_name LIKE '%Delhi%' OR p_content LIKE '%Delhi%')
+    OR (p_name LIKE '%Agra%' OR p_content LIKE '%Agra%')
+    OR (p_name LIKE '%Jaipur%' OR p_content LIKE '%Jaipur%')
+    OR (p_name LIKE '%Golden Triangle%' OR p_content LIKE '%Golden Triangle%')
+    OR p_slug LIKE '%north-india%'
+    OR p_slug LIKE '%golden-triangle%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    reply.send(results);
+  });
+};
+
+// Get Anguilla packages
+exports.getAnguillaPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Anguilla%' OR p_content LIKE '%Anguilla%')
+    OR (p_name LIKE '%The Valley%' OR p_content LIKE '%The Valley%')
+    OR (p_name LIKE '%Shoal Bay%' OR p_content LIKE '%Shoal Bay%')
+    OR (p_name LIKE '%Caribbean%' OR p_content LIKE '%Caribbean%')
+    OR p_slug LIKE '%anguilla%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    // Add slug generation for each package
+    const packagesWithSlugs = results.map(pkg => ({
+      ...pkg,
+      slug: pkg.p_name ? pkg.p_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : `package-${pkg.id}`
+    }));
+    reply.send(packagesWithSlugs);
+  });
+};
+
+// Get Turkey-Georgia-Azerbaijan packages
+exports.getTurkeyGeorgiaAzerbaijanPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Turkey%' AND (p_name LIKE '%Georgia%' OR p_name LIKE '%Azerbaijan%'))
+    OR (p_content LIKE '%Turkey%' AND (p_content LIKE '%Georgia%' OR p_content LIKE '%Azerbaijan%'))
+    OR (p_name LIKE '%Turkey%' OR p_name LIKE '%Georgia%' OR p_name LIKE '%Azerbaijan%')
+    OR (p_content LIKE '%Turkey%' OR p_content LIKE '%Georgia%' OR p_content LIKE '%Azerbaijan%')
+    OR p_slug LIKE '%turkey%georgia%azerbaijan%'
+    OR p_slug LIKE '%turkey-georgia-azerbaijan%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    reply.send(results);
+  });
+};
+
+// Get Anguilla packages
+exports.getAnguillaPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Anguilla%' OR p_content LIKE '%Anguilla%')
+    OR (p_name LIKE '%The Valley%' OR p_content LIKE '%The Valley%')
+    OR (p_name LIKE '%Shoal Bay%' OR p_content LIKE '%Shoal Bay%')
+    OR (p_name LIKE '%Caribbean%' OR p_content LIKE '%Caribbean%')
+    OR p_slug LIKE '%anguilla%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    // Add slug generation for each package
+    const packagesWithSlugs = results.map(pkg => ({
+      ...pkg,
+      slug: pkg.p_name ? pkg.p_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : `package-${pkg.id}`
+    }));
+    reply.send(packagesWithSlugs);
+  });
+};
+
+// Get Uzbekistan Group Tour packages
+exports.getUzbekistanGroupTourPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Uzbekistan%' OR p_content LIKE '%Uzbekistan%')
+    OR (p_name LIKE '%Tashkent%' OR p_content LIKE '%Tashkent%')
+    OR (p_name LIKE '%Samarkand%' OR p_content LIKE '%Samarkand%')
+    OR (p_name LIKE '%Bukhara%' OR p_content LIKE '%Bukhara%')
+    OR p_slug LIKE '%uzbekistan%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    reply.send(results);
+  });
+};
+
+// Get Anguilla packages
+exports.getAnguillaPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Anguilla%' OR p_content LIKE '%Anguilla%')
+    OR (p_name LIKE '%The Valley%' OR p_content LIKE '%The Valley%')
+    OR (p_name LIKE '%Shoal Bay%' OR p_content LIKE '%Shoal Bay%')
+    OR (p_name LIKE '%Caribbean%' OR p_content LIKE '%Caribbean%')
+    OR p_slug LIKE '%anguilla%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    // Add slug generation for each package
+    const packagesWithSlugs = results.map(pkg => ({
+      ...pkg,
+      slug: pkg.p_name ? pkg.p_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : `package-${pkg.id}`
+    }));
+    reply.send(packagesWithSlugs);
+  });
+};
+
+// Get General Group Tour packages
+exports.getGeneralGroupTourPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Group%' OR p_content LIKE '%Group%')
+    OR (p_name LIKE '%Tour%' OR p_content LIKE '%Tour%')
+    AND status = 1 
+    AND is_publish = 1
+    LIMIT 20
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    reply.send(results);
+  });
+};
+
+// Get Anguilla packages
+exports.getAnguillaPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Anguilla%' OR p_content LIKE '%Anguilla%')
+    OR (p_name LIKE '%The Valley%' OR p_content LIKE '%The Valley%')
+    OR (p_name LIKE '%Shoal Bay%' OR p_content LIKE '%Shoal Bay%')
+    OR (p_name LIKE '%Caribbean%' OR p_content LIKE '%Caribbean%')
+    OR p_slug LIKE '%anguilla%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    // Add slug generation for each package
+    const packagesWithSlugs = results.map(pkg => ({
+      ...pkg,
+      slug: pkg.p_name ? pkg.p_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : `package-${pkg.id}`
+    }));
+    reply.send(packagesWithSlugs);
+  });
+};
+
+// AFRICA DESTINATION PACKAGES
+
+// Get Botswana packages
+exports.getBotswanaPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Botswana%' OR p_content LIKE '%Botswana%')
+    OR (p_name LIKE '%Gaborone%' OR p_content LIKE '%Gaborone%')
+    OR (p_name LIKE '%Okavango%' OR p_content LIKE '%Okavango%')
+    OR (p_name LIKE '%Kalahari%' OR p_content LIKE '%Kalahari%')
+    OR (p_name LIKE '%Safari%' OR p_content LIKE '%Safari%')
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    // Add slug generation for each package
+    const packagesWithSlugs = results.map(pkg => ({
+      ...pkg,
+      slug: pkg.p_name ? pkg.p_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : `package-${pkg.id}`
+    }));
+    reply.send(packagesWithSlugs);
+  });
+};
+
+// Get Egypt packages
+exports.getEgyptPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Egypt%' OR p_content LIKE '%Egypt%')
+    OR (p_name LIKE '%Cairo%' OR p_content LIKE '%Cairo%')
+    OR (p_name LIKE '%Luxor%' OR p_content LIKE '%Luxor%')
+    OR (p_name LIKE '%Aswan%' OR p_content LIKE '%Aswan%')
+    OR (p_name LIKE '%Pyramid%' OR p_content LIKE '%Pyramid%')
+    OR (p_name LIKE '%Nile%' OR p_content LIKE '%Nile%')
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    // Add slug generation for each package
+    const packagesWithSlugs = results.map(pkg => ({
+      ...pkg,
+      slug: pkg.p_name ? pkg.p_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : `package-${pkg.id}`
+    }));
+    reply.send(packagesWithSlugs);
+  });
+};
+
+// Get Kenya packages
+exports.getKenyaPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Kenya%' OR p_content LIKE '%Kenya%')
+    OR (p_name LIKE '%Nairobi%' OR p_content LIKE '%Nairobi%')
+    OR (p_name LIKE '%Masai Mara%' OR p_content LIKE '%Masai Mara%')
+    OR (p_name LIKE '%Safari%' OR p_content LIKE '%Safari%')
+    OR (p_name LIKE '%Mombasa%' OR p_content LIKE '%Mombasa%')
+    OR p_slug LIKE '%kenya%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    reply.send(results);
+  });
+};
+
+// Get Anguilla packages
+exports.getAnguillaPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Anguilla%' OR p_content LIKE '%Anguilla%')
+    OR (p_name LIKE '%The Valley%' OR p_content LIKE '%The Valley%')
+    OR (p_name LIKE '%Shoal Bay%' OR p_content LIKE '%Shoal Bay%')
+    OR (p_name LIKE '%Caribbean%' OR p_content LIKE '%Caribbean%')
+    OR p_slug LIKE '%anguilla%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    // Add slug generation for each package
+    const packagesWithSlugs = results.map(pkg => ({
+      ...pkg,
+      slug: pkg.p_name ? pkg.p_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : `package-${pkg.id}`
+    }));
+    reply.send(packagesWithSlugs);
+  });
+};
+
+// Get Madagascar packages
+exports.getMadagascarPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Madagascar%' OR p_content LIKE '%Madagascar%')
+    OR (p_name LIKE '%Antananarivo%' OR p_content LIKE '%Antananarivo%')
+    OR (p_name LIKE '%Lemur%' OR p_content LIKE '%Lemur%')
+    OR p_slug LIKE '%madagascar%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    reply.send(results);
+  });
+};
+
+// Get Anguilla packages
+exports.getAnguillaPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Anguilla%' OR p_content LIKE '%Anguilla%')
+    OR (p_name LIKE '%The Valley%' OR p_content LIKE '%The Valley%')
+    OR (p_name LIKE '%Shoal Bay%' OR p_content LIKE '%Shoal Bay%')
+    OR (p_name LIKE '%Caribbean%' OR p_content LIKE '%Caribbean%')
+    OR p_slug LIKE '%anguilla%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    // Add slug generation for each package
+    const packagesWithSlugs = results.map(pkg => ({
+      ...pkg,
+      slug: pkg.p_name ? pkg.p_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : `package-${pkg.id}`
+    }));
+    reply.send(packagesWithSlugs);
+  });
+};
+
+// Get Malawi packages
+exports.getMalawiPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Malawi%' OR p_content LIKE '%Malawi%')
+    OR (p_name LIKE '%Lilongwe%' OR p_content LIKE '%Lilongwe%')
+    OR (p_name LIKE '%Lake Malawi%' OR p_content LIKE '%Lake Malawi%')
+    OR p_slug LIKE '%malawi%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    reply.send(results);
+  });
+};
+
+// Get Anguilla packages
+exports.getAnguillaPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Anguilla%' OR p_content LIKE '%Anguilla%')
+    OR (p_name LIKE '%The Valley%' OR p_content LIKE '%The Valley%')
+    OR (p_name LIKE '%Shoal Bay%' OR p_content LIKE '%Shoal Bay%')
+    OR (p_name LIKE '%Caribbean%' OR p_content LIKE '%Caribbean%')
+    OR p_slug LIKE '%anguilla%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    // Add slug generation for each package
+    const packagesWithSlugs = results.map(pkg => ({
+      ...pkg,
+      slug: pkg.p_name ? pkg.p_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : `package-${pkg.id}`
+    }));
+    reply.send(packagesWithSlugs);
+  });
+};
+
+// Get Mauritius packages
+exports.getMauritiusPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Mauritius%' OR p_content LIKE '%Mauritius%')
+    OR (p_name LIKE '%Port Louis%' OR p_content LIKE '%Port Louis%')
+    OR (p_name LIKE '%Grand Baie%' OR p_content LIKE '%Grand Baie%')
+    OR p_slug LIKE '%mauritius%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    reply.send(results);
+  });
+};
+
+// Get Anguilla packages
+exports.getAnguillaPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Anguilla%' OR p_content LIKE '%Anguilla%')
+    OR (p_name LIKE '%The Valley%' OR p_content LIKE '%The Valley%')
+    OR (p_name LIKE '%Shoal Bay%' OR p_content LIKE '%Shoal Bay%')
+    OR (p_name LIKE '%Caribbean%' OR p_content LIKE '%Caribbean%')
+    OR p_slug LIKE '%anguilla%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    // Add slug generation for each package
+    const packagesWithSlugs = results.map(pkg => ({
+      ...pkg,
+      slug: pkg.p_name ? pkg.p_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : `package-${pkg.id}`
+    }));
+    reply.send(packagesWithSlugs);
+  });
+};
+
+// Get Morocco packages
+exports.getMoroccoPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Morocco%' OR p_content LIKE '%Morocco%')
+    OR (p_name LIKE '%Casablanca%' OR p_content LIKE '%Casablanca%')
+    OR (p_name LIKE '%Marrakech%' OR p_content LIKE '%Marrakech%')
+    OR (p_name LIKE '%Fez%' OR p_content LIKE '%Fez%')
+    OR (p_name LIKE '%Rabat%' OR p_content LIKE '%Rabat%')
+    OR (p_name LIKE '%Sahara%' OR p_content LIKE '%Sahara%')
+    OR p_slug LIKE '%morocco%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    reply.send(results);
+  });
+};
+
+// Get Anguilla packages
+exports.getAnguillaPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Anguilla%' OR p_content LIKE '%Anguilla%')
+    OR (p_name LIKE '%The Valley%' OR p_content LIKE '%The Valley%')
+    OR (p_name LIKE '%Shoal Bay%' OR p_content LIKE '%Shoal Bay%')
+    OR (p_name LIKE '%Caribbean%' OR p_content LIKE '%Caribbean%')
+    OR p_slug LIKE '%anguilla%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    // Add slug generation for each package
+    const packagesWithSlugs = results.map(pkg => ({
+      ...pkg,
+      slug: pkg.p_name ? pkg.p_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : `package-${pkg.id}`
+    }));
+    reply.send(packagesWithSlugs);
+  });
+};
+
+// Get Mozambique packages
+exports.getMozambiquePackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Mozambique%' OR p_content LIKE '%Mozambique%')
+    OR (p_name LIKE '%Maputo%' OR p_content LIKE '%Maputo%')
+    OR (p_name LIKE '%Inhambane%' OR p_content LIKE '%Inhambane%')
+    OR (p_name LIKE '%Pemba%' OR p_content LIKE '%Pemba%')
+    OR p_slug LIKE '%mozambique%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    reply.send(results);
+  });
+};
+
+// Get Anguilla packages
+exports.getAnguillaPackages = (req, reply) => {
+  const query = `
+    SELECT * FROM tbl_packages 
+    WHERE (p_name LIKE '%Anguilla%' OR p_content LIKE '%Anguilla%')
+    OR (p_name LIKE '%The Valley%' OR p_content LIKE '%The Valley%')
+    OR (p_name LIKE '%Shoal Bay%' OR p_content LIKE '%Shoal Bay%')
+    OR (p_name LIKE '%Caribbean%' OR p_content LIKE '%Caribbean%')
+    OR p_slug LIKE '%anguilla%'
+    AND status = 1 
+    AND is_publish = 1
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) return reply.status(500).send(err);
+    // Add slug generation for each package
+    const packagesWithSlugs = results.map(pkg => ({
+      ...pkg,
+      slug: pkg.p_name ? pkg.p_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : `package-${pkg.id}`
+    }));
+    reply.send(packagesWithSlugs);
+  });
+};
