@@ -167,7 +167,7 @@ export default function BookingPage() {
         },
         body: JSON.stringify({
           amount: amount * 100, // Convert to cents
-          currency: 'SGD',
+          currency: 'S',
           merchant_order_id: `booking-${id}-${Date.now()}`,
           customer: {
             first_name: form.getValues('firstName'),
@@ -191,7 +191,7 @@ export default function BookingPage() {
         id: `demo_intent_${Date.now()}`,
         client_secret: `demo_secret_${Date.now()}`,
         amount: calculateTotal() * 100,
-        currency: 'SGD'
+        currency: 'S'
       }
     }
   }
@@ -775,7 +775,7 @@ export default function BookingPage() {
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
                           <span>Package Total:</span>
-                          <span>SGD ${calculateTotal().toLocaleString()}</span>
+                          <span>S ${calculateTotal().toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Guests:</span>
@@ -783,7 +783,7 @@ export default function BookingPage() {
                         </div>
                         <div className="flex justify-between font-semibold text-blue-900 border-t pt-2">
                           <span>Total Amount:</span>
-                          <span>SGD ${calculateTotal().toLocaleString()}</span>
+                          <span>S ${calculateTotal().toLocaleString()}</span>
                         </div>
                       </div>
                     </div>

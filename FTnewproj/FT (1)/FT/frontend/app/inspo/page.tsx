@@ -1,7 +1,10 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { ChevronRight } from "lucide-react"
+import Link from "next/link"
+import { getPopularDestinations, PopularDestination } from "@/lib/api"
 
 const guideArticles = [
   {
@@ -31,25 +34,24 @@ const guideArticles = [
   }
 ]
 
-const travelInspirations = [
-  {
-    title: "Great Wall of China",
-    location: "China",
-    image: "https://images.pexels.com/photos/2412603/pexels-photo-2412603.jpeg"
-  },
-  {
-    title: "Santorini Sunset",
-    location: "Greece",
-    image: "https://images.pexels.com/photos/1010657/pexels-photo-1010657.jpeg"
-  },
-  {
-    title: "Northern Lights",
-    location: "Iceland",
-    image: "https://images.pexels.com/photos/1933316/pexels-photo-1933316.jpeg"
-  }
-]
-
 export default function BlogPage() {
+  const [travelInspirations, setTravelInspirations] = useState<PopularDestination[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchDestinations = async () => {
+      try {
+        const data = await getPopularDestinations(3)
+        setTravelInspirations(data)
+      } catch (error) {
+        console.error('Error fetching popular destinations:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDestinations()
+  }, [])
   return (
     <main className="min-h-screen bg-white pt-16">
       {/* Hero Section */}
@@ -112,27 +114,34 @@ export default function BlogPage() {
       <section className="bg-white py-16 px-4">
         <div className="max-w-7xl mx-auto">
           <h2 className="text-3xl font-bold mb-12 text-center">Travel Inspiration</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {travelInspirations.map((inspiration, index) => (
-              <div 
-                key={index}
-                className="group cursor-pointer"
-              >
-                <div className="relative aspect-[4/5] rounded-2xl overflow-hidden mb-4">
-                  <img
-                    src={inspiration.image}
-                    alt={inspiration.title}
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  <div className="absolute bottom-6 left-6 right-6">
-                    <h3 className="text-2xl font-bold text-white mb-2">{inspiration.title}</h3>
-                    <p className="text-white/80">{inspiration.location}</p>
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="text-gray-500">Loading destinations...</div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {travelInspirations.map((inspiration) => (
+                <Link 
+                  key={inspiration.id}
+                  href={`/packages/europe/${inspiration.slug}`}
+                  className="group cursor-pointer"
+                >
+                  <div className="relative aspect-[4/5] rounded-2xl overflow-hidden mb-4">
+                    <img
+                      src={inspiration.image}
+                      alt={inspiration.country}
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                    <div className="absolute bottom-6 left-6 right-6">
+                      <h3 className="text-2xl font-bold text-white mb-2">{inspiration.country}</h3>
+                      <p className="text-white/80">Explore {inspiration.country}</p>
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </main>

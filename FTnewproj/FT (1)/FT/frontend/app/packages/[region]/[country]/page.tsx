@@ -40,6 +40,9 @@ export default function DynamicCountryPage() {
   const { isOpen, modalData, openModal, closeModal } = useEnquiryModal();
 
   useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+
     // Try to get country configuration from static config first
     let config = getCountryBySlug(regionSlug, countrySlug)
     
@@ -59,14 +62,18 @@ export default function DynamicCountryPage() {
       };
     }
     
-    setCountryConfig(config)
+    if (isMounted) {
+      setCountryConfig(config)
+    }
 
     // Fetch packages for this country
     const fetchPackages = async () => {
       try {
         // Try to fetch packages by searching for country name in package titles
         const countryName = config.name;
-        const response = await fetch(`${API_BASE}/packages`);
+        const response = await fetch(`${API_BASE}/packages`, {
+          signal: controller.signal
+        });
         
         if (!response.ok) {
           throw new Error('Failed to fetch packages');
@@ -81,16 +88,27 @@ export default function DynamicCountryPage() {
           pkg.p_name?.toLowerCase().includes(countryName.toLowerCase())
         );
         
-        setPackages(filteredPackages);
+        if (isMounted) {
+          setPackages(filteredPackages);
+        }
       } catch (err) {
-        console.error('Error fetching packages:', err);
-        setError('Failed to load packages. Please try again later.');
+        if (isMounted && (err as any)?.name !== 'AbortError') {
+          console.error('Error fetching packages:', err);
+          setError('Failed to load packages. Please try again later.');
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchPackages();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
   }, [regionSlug, countrySlug]);
 
   if (loading) {
@@ -242,11 +260,11 @@ export default function DynamicCountryPage() {
                       <span className="text-xs text-gray-500 block">From</span>
                       <div className="flex items-baseline gap-1">
                         <span className="text-3xl font-bold text-gray-900">
-                          {pkg.currency}${pkg.price?.toLocaleString()}
+                          {pkg.currency === 'S' ? 'S' : pkg.currency} ${pkg.price?.toLocaleString()}
                         </span>
                       </div>
                       {pkg.savings > 0 && (
-                        <span className="text-xs text-green-600 font-medium">You save {pkg.currency}${pkg.savings?.toLocaleString()}</span>
+                        <span className="text-xs text-green-600 font-medium">You save {pkg.currency === 'S' ? 'S' : pkg.currency} ${pkg.savings?.toLocaleString()}</span>
                       )}
                     </div>
                     <Link 

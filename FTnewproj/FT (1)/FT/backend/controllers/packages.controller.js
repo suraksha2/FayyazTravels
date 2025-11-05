@@ -2275,3 +2275,81 @@ exports.getSearchSuggestions = (request, reply) => {
     });
   });
 };
+
+// Get popular destinations based on package count and bookings
+exports.getPopularDestinations = (req, reply) => {
+  const { limit = 6 } = req.query;
+  const limitValue = parseInt(limit) || 6;
+  
+  // Query to get destinations with most packages (indicating popularity)
+  // Using country_id to get actual country names
+  const query = `
+    SELECT 
+      p.country_id,
+      p.feature_img as image,
+      COUNT(DISTINCT p.id) as package_count,
+      MIN(p.id) as sample_id,
+      MIN(p.p_slug) as sample_slug,
+      MIN(p.p_name) as sample_name
+    FROM tbl_packages p
+    WHERE p.status = 1 
+      AND p.is_publish = 1
+      AND p.country_id IS NOT NULL
+      AND p.country_id != ''
+      AND p.country_id != '0'
+    GROUP BY p.country_id
+    ORDER BY package_count DESC
+    LIMIT ${limitValue}
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error('Error fetching popular destinations:', err);
+      return reply.status(500).send({ 
+        error: 'Failed to fetch popular destinations', 
+        details: err.message 
+      });
+    }
+    
+    // Format the results
+    const destinations = results
+      .filter(dest => dest.country_id) // Filter out null/undefined countries
+      .map(dest => {
+        // Extract country name from package name (usually first word or before hyphen)
+        let countryName = dest.sample_name;
+        
+        // Try to extract country from package name
+        const nameMatch = dest.sample_name.match(/^([A-Za-z\s]+?)(?:\s*[-–—]|\s*\d|\s*\(|$)/);
+        if (nameMatch) {
+          countryName = nameMatch[1].trim();
+        }
+        
+        // Create a slug from the country name
+        const slug = countryName.toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, '');
+        
+        // Fix image path - prepend API base URL if it's a relative path
+        let imageUrl = dest.image;
+        if (imageUrl && !imageUrl.startsWith('http')) {
+          // Remove leading slash if present
+          imageUrl = imageUrl.replace(/^\//, '');
+          imageUrl = `http://localhost:3003/${imageUrl}`;
+        }
+        
+        return {
+          id: dest.sample_id,
+          country: countryName,
+          slug: slug,
+          image: imageUrl || `https://images.pexels.com/photos/${3026364 + (dest.sample_id % 1000)}/pexels-photo-${3026364 + (dest.sample_id % 1000)}.jpeg`,
+          packageCount: dest.package_count
+        };
+      });
+    
+    reply.send({
+      success: true,
+      count: destinations.length,
+      destinations: destinations
+    });
+  });
+};

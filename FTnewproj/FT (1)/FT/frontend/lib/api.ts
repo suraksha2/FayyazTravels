@@ -79,6 +79,20 @@ export async function getPackageDestinations(): Promise<string[]> {
   return apiFetch('/packages/destinations');
 }
 
+// Popular Destinations API
+export interface PopularDestination {
+  id: number;
+  country: string;
+  slug: string;
+  image: string;
+  packageCount: number;
+}
+
+export async function getPopularDestinations(limit: number = 6): Promise<PopularDestination[]> {
+  const response = await apiFetch(`/packages/popular-destinations?limit=${limit}`);
+  return response.destinations || [];
+}
+
 // Destinations API
 export interface Destination {
   id: string;

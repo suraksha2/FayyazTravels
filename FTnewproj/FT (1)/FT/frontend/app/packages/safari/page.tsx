@@ -26,27 +26,43 @@ export default function SafariPackagesPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+
     const fetchSafariPackages = async () => {
       try {
-        const response = await fetch('http://localhost:3003/packages/category/safari')
+        const response = await fetch('http://localhost:3003/packages/category/safari', {
+          signal: controller.signal
+        })
         if (!response.ok) {
           throw new Error('Failed to fetch safari packages')
         }
         const data = await response.json()
         
-        if (data.success && data.packages) {
-          setPackages(data.packages)
-        } else {
-          throw new Error('No safari packages found')
+        if (isMounted) {
+          if (data.success && data.packages) {
+            setPackages(data.packages)
+          } else {
+            throw new Error('No safari packages found')
+          }
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred')
+        if (isMounted && (err as any)?.name !== 'AbortError') {
+          setError(err instanceof Error ? err.message : 'An error occurred')
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
     fetchSafariPackages()
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
   }, [])
 
   if (loading) {
@@ -163,7 +179,7 @@ export default function SafariPackagesPage() {
                     </div>
                     {pkg.savings > 0 && (
                       <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                        Save {pkg.currency}${pkg.savings.toLocaleString()}
+                        Save {pkg.currency === 'S' ? 'S' : pkg.currency} ${pkg.savings.toLocaleString()}
                       </div>
                     )}
                     <div className="absolute bottom-4 left-4 bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-medium">
@@ -202,10 +218,10 @@ export default function SafariPackagesPage() {
                     <div className="text-left">
                       <div className="text-sm text-gray-500">From</div>
                       <div className="text-2xl font-bold text-[#002147]">
-                        {pkg.currency}${pkg.price.toLocaleString()}
+                        {pkg.currency === 'S' ? 'S' : pkg.currency} ${pkg.price.toLocaleString()}
                       </div>
                       {pkg.savings > 0 && (
-                        <div className="text-sm text-green-600">Save {pkg.currency}${pkg.savings.toLocaleString()}</div>
+                        <div className="text-sm text-green-600">Save {pkg.currency === 'S' ? 'S' : pkg.currency} ${pkg.savings.toLocaleString()}</div>
                       )}
                     </div>
                     <div className="flex items-center gap-1">
@@ -329,7 +345,7 @@ export default function SafariPackagesPage() {
             <Button className="bg-white text-[#8B4513] hover:bg-white/90 px-8 py-3">
               Contact Safari Expert
             </Button>
-            <Button variant="outline" className="border-white text-white hover:bg-white hover:text-[#8B4513] px-8 py-3">
+            <Button variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-[#8B4513] hover:border-white transition-all duration-300 px-8 py-3">
               Call Now: +65 6235 3900
             </Button>
           </div>

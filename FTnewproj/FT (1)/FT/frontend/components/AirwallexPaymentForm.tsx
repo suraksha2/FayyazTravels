@@ -569,7 +569,7 @@ export default function AirwallexPaymentForm({
             <div className="border-t pt-3">
               <div className="flex justify-between text-lg font-semibold">
                 <span>Total Amount:</span>
-                <span>SGD ${bookingData.total_amount.toFixed(2)}</span>
+                <span>S${bookingData.total_amount.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -691,7 +691,7 @@ export default function AirwallexPaymentForm({
                       Processing...
                     </>
                   ) : (
-                    `Pay SGD $${bookingData.total_amount.toFixed(2)}` 
+                    `Pay S$${bookingData.total_amount.toFixed(2)}` 
                   )}
                 </Button>
                 

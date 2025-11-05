@@ -335,7 +335,7 @@ export default function PackageDetailPage() {
             <Button className="bg-white text-[#8B1F41] hover:bg-white/90 px-8 py-3">
               Contact Expert
             </Button>
-            <Button variant="outline" className="border-white text-white hover:bg-white hover:text-[#8B1F41] px-8 py-3">
+            <Button variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-[#8B1F41] hover:border-white transition-all duration-300 px-8 py-3">
               Call Now: +65 6235 3900
             </Button>
           </div>

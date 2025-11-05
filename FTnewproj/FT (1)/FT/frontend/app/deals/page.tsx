@@ -8,6 +8,7 @@ import Link from "next/link"
 
 interface Deal {
   id: number
+  slug: string
   title: string
   subtitle?: string
   destination: string
@@ -65,6 +66,7 @@ export default function DealsPage() {
           // Transform the hot deals data to match the Deal interface
           const transformedDeals = data.deals.map((deal: any) => ({
             id: deal.id,
+            slug: deal.slug,
             title: deal.title,
             subtitle: deal.subtitle || `Explore ${deal.title}`,
             destination: deal.title,
@@ -152,7 +154,7 @@ export default function DealsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {deals.map((deal) => (
             <div key={deal.id} className="bg-white rounded-lg overflow-hidden shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 flex flex-col h-full">
-              <Link href={`/deals/${deal.id}`} className="block flex-1 flex flex-col">
+              <Link href={`/package-detail/${deal.slug}`} className="block flex-1 flex flex-col">
               <div className="relative">
                 <img 
                   src={deal.image} 
@@ -211,10 +213,10 @@ export default function DealsPage() {
                   <div className="flex-1">
                     <span className="text-sm text-gray-500 block mb-1">From</span>
                     <div className="text-3xl font-bold text-gray-900 mb-1">
-                      S${deal.price.toLocaleString()}
+                      S ${deal.price.toLocaleString()}
                     </div>
                     <span className="text-green-600 text-sm font-medium">
-                      You save S${deal.savings.toLocaleString()}
+                      You save S ${deal.savings.toLocaleString()}
                     </span>
                   </div>
                   <Link 
@@ -353,7 +355,7 @@ export default function DealsPage() {
           
           <div className="mb-8">
             <p className="text-2xl mb-2">Save upto</p>
-            <p className="text-4xl font-bold mb-4">S$ 4812.80*</p>
+            <p className="text-4xl font-bold mb-4">S $ 4812.80*</p>
             <p className="text-sm text-white/80">
               Unlock Exclusive access to up coming packages and early bird discounts.
             </p>

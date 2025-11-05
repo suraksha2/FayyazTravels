@@ -353,7 +353,7 @@ export default function TestAirwallexPaymentPage() {
                         </div>
                         <div className="text-xs text-gray-500">
                           Package: {testCase.bookingData.package_id} | 
-                          Amount: SGD ${testCase.bookingData.total_amount.toFixed(2)} | 
+                          Amount: S ${testCase.bookingData.total_amount.toFixed(2)} | 
                           Travelers: {testCase.bookingData.adults + testCase.bookingData.children + testCase.bookingData.infants}
                         </div>
                       </div>
@@ -418,7 +418,7 @@ export default function TestAirwallexPaymentPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="total_amount">Total Amount (SGD)</Label>
+                    <Label htmlFor="total_amount">Total Amount (S)</Label>
                     <Input
                       id="total_amount"
                       type="number"

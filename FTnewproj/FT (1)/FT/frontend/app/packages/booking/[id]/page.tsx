@@ -105,23 +105,37 @@ export default function BookingPage() {
   })
 
   useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+
     const fetchPackageData = async () => {
       try {
         setLoading(true)
         const data = await getPackageForBooking(id as string)
-        setPackageData(data)
-        setError(null)
+        if (isMounted) {
+          setPackageData(data)
+          setError(null)
+        }
       } catch (err) {
-        console.error('Error fetching package details:', err)
-        setError('Failed to load package details')
+        if (isMounted && (err as any)?.name !== 'AbortError') {
+          console.error('Error fetching package details:', err)
+          setError('Failed to load package details')
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
     if (id) {
       fetchPackageData()
     }
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
   }, [id])
 
   // Update form values when counters change
@@ -775,10 +789,10 @@ export default function BookingPage() {
                   <span>Package</span>
                   <div className="text-right">
                     <div className="line-through text-gray-400 text-sm">
-                      S$ {(calculateTotal() * 1.15).toLocaleString()}
+                      S${(calculateTotal() * 1.15).toLocaleString()}
                     </div>
                     <div className="font-bold text-[#002147]">
-                      S$ {calculateTotal().toLocaleString()}
+                      S${calculateTotal().toLocaleString()}
                     </div>
                   </div>
                 </div>

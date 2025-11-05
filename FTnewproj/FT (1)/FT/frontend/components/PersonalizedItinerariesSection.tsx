@@ -1,12 +1,14 @@
 "use client"
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { MessageCircle, Award, Globe, CreditCard, MessageSquare, PenTool, RefreshCw, Plane } from 'lucide-react'
 import EnquiryModal from '@/components/EnquiryModal'
 
 export default function PersonalizedItinerariesSection() {
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const router = useRouter()
 
   return (
     <>
@@ -34,14 +36,14 @@ export default function PersonalizedItinerariesSection() {
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Button 
                     onClick={() => {
-                      // Track email button click
+                      // Track button click
                       if (typeof window !== 'undefined' && (window as any).gtag) {
                         (window as any).gtag('event', 'click', {
                           event_category: 'CTA',
-                          event_label: 'Start My Travel Plan - Email'
+                          event_label: 'Start My Travel Plan - Contact Form'
                         })
                       }
-                      window.location.href = 'mailto:info@fayyaztravels.com?subject=Travel Plan Enquiry&body=Hi, I would like to start planning my trip.'
+                      router.push('/contact')
                     }}
                     className="bg-black hover:bg-gray-800 text-white px-8 py-3 text-sm font-medium rounded-sm flex items-center gap-2 justify-center"
                   >

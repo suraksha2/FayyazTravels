@@ -26,27 +26,43 @@ export default function BeachPackagesPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+
     const fetchBeachPackages = async () => {
       try {
-        const response = await fetch('http://localhost:3003/packages/category/beach')
+        const response = await fetch('http://localhost:3003/packages/category/beach', {
+          signal: controller.signal
+        })
         if (!response.ok) {
           throw new Error('Failed to fetch beach packages')
         }
         const data = await response.json()
         
-        if (data.success && data.packages) {
-          setPackages(data.packages)
-        } else {
-          throw new Error('No beach packages found')
+        if (isMounted) {
+          if (data.success && data.packages) {
+            setPackages(data.packages)
+          } else {
+            throw new Error('No beach packages found')
+          }
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred')
+        if (isMounted && (err as any)?.name !== 'AbortError') {
+          setError(err instanceof Error ? err.message : 'An error occurred')
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
     fetchBeachPackages()
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
   }, [])
 
   if (loading) {
@@ -163,7 +179,7 @@ export default function BeachPackagesPage() {
                   </div>
                   {pkg.savings > 0 && (
                     <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                      Save {pkg.currency}${pkg.savings.toLocaleString()}
+                      Save {pkg.currency === 'S' ? 'S' : pkg.currency} ${pkg.savings.toLocaleString()}
                     </div>
                   )}
                   <div className="absolute bottom-4 left-4 bg-cyan-500 text-white px-3 py-1 rounded-full text-sm font-medium">
@@ -202,10 +218,10 @@ export default function BeachPackagesPage() {
                     <div className="text-left">
                       <div className="text-sm text-gray-500">From</div>
                       <div className="text-2xl font-bold text-[#002147]">
-                        {pkg.currency}${pkg.price.toLocaleString()}
+                        {pkg.currency === 'S' ? 'S' : pkg.currency} ${pkg.price.toLocaleString()}
                       </div>
                       {pkg.savings > 0 && (
-                        <div className="text-sm text-green-600">Save {pkg.currency}${pkg.savings.toLocaleString()}</div>
+                        <div className="text-sm text-green-600">Save {pkg.currency === 'S' ? 'S' : pkg.currency}${pkg.savings.toLocaleString()}</div>
                       )}
                     </div>
                     <div className="flex items-center gap-1">

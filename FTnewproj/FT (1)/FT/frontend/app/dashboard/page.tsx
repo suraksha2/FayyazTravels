@@ -4,58 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Calendar, Package, User, Settings, LogOut, Grid3X3 } from "lucide-react"
-
-// User interface
-interface User {
-  firstName: string
-  lastName: string
-  email: string
-  phone: string
-  dateOfBirth: string
-  address: string
-}
-
-// Mock user authentication - replace with your actual auth system
-const useAuth = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [user, setUser] = useState<User | null>(null)
-
-  useEffect(() => {
-    // Simulate checking authentication status
-    const checkAuth = () => {
-      const userData = localStorage.getItem('user')
-      if (userData) {
-        setUser(JSON.parse(userData))
-        setIsLoggedIn(true)
-      } else {
-        // Check if user should be logged in (you can modify this logic)
-        const shouldBeLoggedIn = localStorage.getItem('isLoggedIn') === 'true'
-        if (shouldBeLoggedIn) {
-          // Mock user data for demo
-          const mockUser = {
-            firstName: 'Bhushan',
-            lastName: 'Patil',
-            email: 'bhushan@example.com',
-            phone: '+91 9876 543210',
-            dateOfBirth: '1990-05-15',
-            address: '123 Mumbai, India'
-          }
-          setUser(mockUser)
-          setIsLoggedIn(true)
-          localStorage.setItem('user', JSON.stringify(mockUser))
-        }
-      }
-      setLoading(false)
-    }
-    
-    // Add a small delay to simulate real auth check
-    const timer = setTimeout(checkAuth, 100)
-    return () => clearTimeout(timer)
-  }, [])
-
-  return { isLoggedIn, loading, user }
-}
+import { useAuth } from '@/contexts/AuthContext'
 
 // API configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003'
@@ -78,7 +27,7 @@ interface Booking {
 }
 
 export default function DashboardPage() {
-  const { isLoggedIn, loading, user } = useAuth()
+  const { user, isAuthenticated, isLoading, logout } = useAuth()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('All Transactions')
   const [bookings, setBookings] = useState<Booking[]>([])
@@ -100,11 +49,13 @@ export default function DashboardPage() {
       // Build query parameters for user identification
       const params = new URLSearchParams()
       
-      // Use email for user identification (since we don't have user_id in the mock user object)
-      if (user.email) {
+      // Prefer user_id if available, fallback to email
+      if (user.id) {
+        params.append('user_id', user.id.toString())
+      } else if (user.email) {
         params.append('user_email', user.email)
       } else {
-        throw new Error('User email not available for authentication')
+        throw new Error('User identification not available')
       }
       
       const response = await fetch(`${API_BASE_URL}/bookings/details?${params.toString()}`)
@@ -132,19 +83,19 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    if (!loading && !isLoggedIn) {
+    if (!isLoading && !isAuthenticated) {
       router.push('/login')
     }
-  }, [isLoggedIn, loading, router])
+  }, [isAuthenticated, isLoading, router])
 
   // Fetch bookings when component mounts and user is authenticated
   useEffect(() => {
-    if (isLoggedIn && !loading) {
+    if (isAuthenticated && !isLoading && user) {
       fetchBookings()
     }
-  }, [isLoggedIn, loading])
+  }, [isAuthenticated, isLoading, user])
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center pt-16">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#002147]"></div>
@@ -152,7 +103,7 @@ export default function DashboardPage() {
     )
   }
 
-  if (!isLoggedIn) {
+  if (!isAuthenticated) {
     return null // Will redirect to login
   }
 
@@ -199,10 +150,10 @@ export default function DashboardPage() {
           <div className="p-6 border-b bg-gray-50">
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 bg-pink-500 rounded-full flex items-center justify-center text-white font-semibold text-lg">
-                B
+                {user?.name?.charAt(0).toUpperCase() || 'U'}
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900">{user?.firstName} {user?.lastName}</h3>
+                <h3 className="font-semibold text-gray-900">{user?.name}</h3>
                 <p className="text-sm text-gray-500">{user?.email}</p>
               </div>
             </div>
@@ -246,11 +197,7 @@ export default function DashboardPage() {
             </button>
 
             <button 
-              onClick={() => {
-                localStorage.removeItem('user')
-                localStorage.removeItem('isLoggedIn')
-                router.push('/login')
-              }}
+              onClick={logout}
               className="w-full px-6 py-3 text-left flex items-center space-x-3 hover:bg-gray-50 transition-colors text-red-600"
             >
               <LogOut className="w-5 h-5" />

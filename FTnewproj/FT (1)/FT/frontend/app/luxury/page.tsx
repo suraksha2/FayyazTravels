@@ -5,7 +5,6 @@ import { motion } from "framer-motion"
 import { useInView } from "react-intersection-observer"
 import { Plane, Ship, Car, Building2, MapPin, Crown } from "lucide-react"
 import Footer from "@/components/Footer"
-import Link from "next/link"
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
@@ -232,13 +231,11 @@ export default function LuxuryPage() {
           <p className="text-xl text-white/60 mb-12">
             Let us craft your perfect luxury experience. Our dedicated concierge team is ready to assist you 24/7.
           </p>
-          <Link href="/contact">
-            <Button 
-              className="bg-[#C69C3C] hover:bg-[#B38C2C] text-white text-lg px-12 py-8"
-            >
-              Contact Our Concierge
-            </Button>
-          </Link>
+          <Button 
+            className="bg-[#C69C3C] hover:bg-[#B38C2C] text-white text-lg px-12 py-8"
+          >
+            Contact Our Concierge
+          </Button>
         </div>
       </section>
 

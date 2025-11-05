@@ -192,12 +192,12 @@ export default function SearchResultsPage() {
                                             <span className="text-xs text-gray-500 block">From</span>
                                             <div className="flex items-baseline gap-1">
                                                 <span className="text-3xl font-bold text-gray-900">
-                                                    {pkg.currency}${pkg.price?.toLocaleString()}
+                                                    {pkg.currency === 'S' ? 'S' : pkg.currency} ${pkg.price?.toLocaleString()}
                                                 </span>
                                             </div>
                                             {pkg.savings > 0 && (
                                                 <span className="text-xs text-green-600 font-medium">
-                                                    You save {pkg.currency}${pkg.savings?.toLocaleString()}
+                                                    You save {pkg.currency === 'S' ? 'S' : pkg.currency} ${pkg.savings?.toLocaleString()}
                                                 </span>
                                             )}
                                         </div>

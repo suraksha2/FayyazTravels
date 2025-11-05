@@ -198,9 +198,9 @@ export default function HotDealsSection() {
                 <div>
                   <span className="text-sm text-gray-500 block">From</span>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-bold text-gray-900">{deal.currency || 'S'}${deal.price}</span>
+                    <span className="text-2xl font-bold text-gray-900">{deal.currency || 'S'} ${deal.price}</span>
                   </div>
-                  <span className="text-green-600 text-xs">You save {deal.currency || 'S'}${deal.savings}</span>
+                  <span className="text-green-600 text-xs">You save {deal.currency || 'S'} ${deal.savings}</span>
                 </div>
                 <Link href={`/packages/booking/${deal.id}`}>
                   <Button className="bg-[#002147] hover:bg-[#001a38] text-white px-10 py-4 rounded-lg text-lg font-bold transition-all duration-300 hover:shadow-lg">

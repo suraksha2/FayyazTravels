@@ -56,12 +56,14 @@ export default function PackagesPage() {
 
   // Fetch package categories from API
   useEffect(() => {
+    let isMounted = true;
+
     setIsLoading(true)
     setError(null)
     
     getPackageCategories()
       .then(data => {
-        if (data && data.length > 0) {
+        if (isMounted && data && data.length > 0) {
           // Transform API data to match our UI requirements
           const formattedCategories = data.map((category: string) => {
             // Convert category name to URL-friendly slug
@@ -85,13 +87,21 @@ export default function PackagesPage() {
         }
       })
       .catch(err => {
-        console.error('Error fetching package categories:', err)
-        setError('Failed to load package categories')
-        // Keep using default categories on error
+        if (isMounted) {
+          console.error('Error fetching package categories:', err)
+          setError('Failed to load package categories')
+          // Keep using default categories on error
+        }
       })
       .finally(() => {
-        setIsLoading(false)
+        if (isMounted) {
+          setIsLoading(false)
+        }
       })
+
+    return () => {
+      isMounted = false;
+    };
   }, [])
 
   // Filter categories based on search query

@@ -31,23 +31,37 @@ export default function PackageDetailsPage() {
   const [showFullItinerary, setShowFullItinerary] = useState(false)
 
   useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+
     const fetchPackageData = async () => {
       try {
         setLoading(true)
         const data = await getPackageById(id as string)
-        setPackageData(data)
-        setError(null)
+        if (isMounted) {
+          setPackageData(data)
+          setError(null)
+        }
       } catch (err) {
-        console.error('Error fetching package details:', err)
-        setError('Failed to load package details')
+        if (isMounted && (err as any)?.name !== 'AbortError') {
+          console.error('Error fetching package details:', err)
+          setError('Failed to load package details')
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
     if (id) {
       fetchPackageData()
     }
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
   }, [id])
 
   if (loading) {

@@ -775,10 +775,10 @@ export default function BookingPage() {
                   <span>Package</span>
                   <div className="text-right">
                     <div className="line-through text-gray-400 text-sm">
-                      SGD $ {(calculateTotal() * 1.15).toLocaleString()}
+                      S $ {(calculateTotal() * 1.15).toLocaleString()}
                     </div>
                     <div className="font-bold text-[#002147]">
-                      SGD $ {calculateTotal().toLocaleString()}
+                      S $ {calculateTotal().toLocaleString()}
                     </div>
                   </div>
                 </div>

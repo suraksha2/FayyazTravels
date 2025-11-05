@@ -74,22 +74,38 @@ export default function GroupTourPage({ params }: { params: { tourSlug: string }
   }
 
   useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+
     const fetchPackages = async () => {
       try {
-        const response = await fetch(`http://localhost:3003/packages/group-tours/${tourSlug}`)
+        const response = await fetch(`http://localhost:3003/packages/group-tours/${tourSlug}`, {
+          signal: controller.signal
+        })
         if (!response.ok) {
           throw new Error('Failed to fetch packages')
         }
         const data = await response.json()
-        setPackages(data)
+        if (isMounted) {
+          setPackages(data)
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred')
+        if (isMounted && (err as any)?.name !== 'AbortError') {
+          setError(err instanceof Error ? err.message : 'An error occurred')
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
     fetchPackages()
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
   }, [tourSlug])
 
   if (loading) {
@@ -233,12 +249,12 @@ export default function GroupTourPage({ params }: { params: { tourSlug: string }
                         <span className="text-xs text-gray-500 block">From</span>
                         <div className="flex items-baseline gap-1">
                           <span className="text-3xl font-bold text-gray-900">
-                            {pkg.currency || pkg.package_currency || 'S'}${pkg.price?.toLocaleString() || '2999'}
+                            {(pkg.currency === 'S' || pkg.package_currency === 'S') ? 'S' : (pkg.currency || pkg.package_currency || 'S')} ${pkg.price?.toLocaleString() || '2999'}
                           </span>
                         </div>
                         {pkg.savings && (
                           <span className="text-xs text-green-600 font-medium">
-                            You save {pkg.currency || pkg.package_currency || 'S'}${pkg.savings?.toLocaleString()}
+                            You save {(pkg.currency === 'S' || pkg.package_currency === 'S') ? 'S' : (pkg.currency || pkg.package_currency || 'S')} ${pkg.savings?.toLocaleString()}
                           </span>
                         )}
                       </div>

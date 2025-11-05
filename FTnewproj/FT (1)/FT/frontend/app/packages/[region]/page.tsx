@@ -47,34 +47,54 @@ export default function DynamicRegionPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+
     // Get region configuration
     const config = getRegionBySlug(regionSlug)
     if (!config) {
-      setError('Region not found')
-      setLoading(false)
+      if (isMounted) {
+        setError('Region not found')
+        setLoading(false)
+      }
       return
     }
-    setRegionConfig(config)
+    if (isMounted) {
+      setRegionConfig(config)
+    }
 
     // Fetch packages for this region
     const fetchPackages = async () => {
       try {
         setLoading(true)
-        const response = await axios.get(`${API_BASE}${config.apiEndpoint}`)
-        if (response.data.success) {
-          setPackages(response.data.packages)
-        } else if (Array.isArray(response.data)) {
-          setPackages(response.data)
+        const response = await axios.get(`${API_BASE}${config.apiEndpoint}`, {
+          signal: controller.signal
+        })
+        if (isMounted) {
+          if (response.data.success) {
+            setPackages(response.data.packages)
+          } else if (Array.isArray(response.data)) {
+            setPackages(response.data)
+          }
         }
       } catch (err) {
-        console.error('Error fetching packages:', err)
-        setError('Failed to load packages')
+        if (isMounted && (err as any)?.name !== 'CanceledError') {
+          console.error('Error fetching packages:', err)
+          setError('Failed to load packages')
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
     fetchPackages()
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
   }, [regionSlug])
 
   const scroll = (direction: 'left' | 'right') => {
@@ -276,12 +296,12 @@ export default function DynamicRegionPage() {
                       <span className="text-xs text-gray-500 block">From</span>
                       <div className="flex items-baseline gap-1">
                         <span className="text-3xl font-bold text-gray-900">
-                          {pkg.currency}${pkg.price?.toLocaleString()}
+                          {pkg.currency === 'S' ? 'S' : pkg.currency} ${pkg.price?.toLocaleString()}
                         </span>
                       </div>
                       {pkg.savings > 0 && (
                         <span className="text-xs text-green-600 font-medium">
-                          You save {pkg.currency}${pkg.savings?.toLocaleString()}
+                          You save {pkg.currency === 'S' ? 'S' : pkg.currency} ${pkg.savings?.toLocaleString()}
                         </span>
                       )}
                     </div>

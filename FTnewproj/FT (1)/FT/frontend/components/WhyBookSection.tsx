@@ -27,7 +27,7 @@ export default function WhyBookSection() {
             </div>
             <h3 className="text-xl font-semibold mb-4 min-h-[3.5rem] flex items-center justify-center whitespace-nowrap">Bespoke and Personalised</h3>
             <p className="text-gray-300">
-              We tailor every unique, stress-free trip just for you!
+              We tailor every unique, stress-free trip so no trp will ever be the same 
             </p>
           </div>
 
@@ -38,19 +38,19 @@ export default function WhyBookSection() {
               <ShieldCheck className="w-8 h-8" />
             </div>
             <h3 className="text-xl font-semibold mb-4 min-h-[3.5rem] flex items-center justify-center whitespace-nowrap">
-              Safety and Privacy
+              End to End services
             </h3>
             <p className="text-gray-300">
-              Get 24/7 emergency support services for secure travel!
+              Complete, exceptional travel service for all your needs - hassle-free!
             </p>
           </div>
            <div className="bg-white/5 rounded-lg p-8 text-center backdrop-blur-sm hover:bg-white/10 transition-all duration-300 flex flex-col">
             <div className="w-16 h-16 bg-[#002147] rounded-full flex items-center justify-center mx-auto mb-6">
               <Settings className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-semibold mb-4 min-h-[3.5rem] flex items-center justify-center whitespace-nowrap">End to End Services</h3>
+            <h3 className="text-xl font-semibold mb-4 min-h-[3.5rem] flex items-center justify-center whitespace-nowrap">Safety and Privacy</h3>
             <p className="text-gray-300">
-              Complete, exceptional travel service for all your needs - hassle-free!
+              Get 24/7 emergency support services for secure travel!
             </p>
           </div>
         </div>

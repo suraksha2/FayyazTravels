@@ -5,6 +5,7 @@ module.exports = async function (fastify, opts) {
   // Define specific routes before parameterized routes
   fastify.get('/packages/search-suggestions', controller.getSearchSuggestions);
   fastify.get('/packages/grouped-destinations', controller.getGroupedDestinations);
+  fastify.get('/packages/popular-destinations', controller.getPopularDestinations);
   fastify.get('/packages/hot-deals', controller.getHotDeals);
   fastify.get('/packages/south-east-asia', controller.getSouthEastAsiaPackages);
   fastify.get('/packages/south-east-europe', controller.getSouthEastEuropePackages);
@@ -25,8 +26,8 @@ module.exports = async function (fastify, opts) {
   fastify.get('/packages/multi-city', controller.getMultiCityDestinations);
   fastify.get('/packages/category/:category', controller.getByCategory);
   fastify.get('/packages/booking/:id', controller.getForBooking);
-  fastify.get('/packages/slug/:slug', controller.getBySlug);
-  fastify.get('/packages/:id', controller.getById);
+  // Slug route should come before ID route to prioritize slug-based URLs
+  fastify.get('/packages/:slug', controller.getBySlug);
   fastify.get('/packages', controller.getAll);
   fastify.post('/packages', controller.create);
 };

@@ -27,22 +27,36 @@ export default function GroupToursPackagesPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+
     const fetchPackages = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`${API_BASE}/packages/group-tours`);
-        if (response.data.success) {
+        const response = await axios.get(`${API_BASE}/packages/group-tours`, {
+          signal: controller.signal
+        });
+        if (isMounted && response.data.success) {
           setGroupTourPackages(response.data.packages);
         }
       } catch (err) {
-        console.error('Error fetching Group Tours packages:', err);
-        setError('Failed to load packages');
+        if (isMounted && (err as any)?.name !== 'CanceledError') {
+          console.error('Error fetching Group Tours packages:', err);
+          setError('Failed to load packages');
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchPackages();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
   }, []);
   return (
     <main className="min-h-screen bg-white">

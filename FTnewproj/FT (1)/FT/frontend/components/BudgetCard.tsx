@@ -14,26 +14,26 @@ export default function BudgetCard() {
     {
       title: "Luxury",
       subtitle: "Tier.",
-      color: "text-white",
-      bgColor: "bg-[#C69C3C]"
+      color: "text-gray-900",
+      bgColor: "bg-white"
     },
     {
       title: "Affordable",
       subtitle: "Luxury.",
-      color: "text-white",
-      bgColor: "bg-[#8B2942]"
+      color: "text-gray-900",
+      bgColor: "bg-white"
     },
     {
       title: "Affordable",
       subtitle: "Tier.",
-      color: "text-white",
-      bgColor: "bg-[#5B9AA9]"
+      color: "text-gray-900",
+      bgColor: "bg-white"
     },
     {
       title: "Expiring",
       subtitle: "Soon.",
-      color: "text-white",
-      bgColor: "bg-[#6B4423]"
+      color: "text-gray-900",
+      bgColor: "bg-white"
     }
   ]
 
@@ -54,20 +54,20 @@ export default function BudgetCard() {
             >
               <div className="relative w-full h-full transition-transform duration-700 transform-style-3d group-hover:rotate-y-180">
                 {/* Front of card */}
-                <div className={`absolute inset-0 ${tier.bgColor} ${tier.color} rounded-2xl p-8 flex flex-col justify-between backface-hidden shadow-lg`}>
+                <div className={`absolute inset-0 ${tier.bgColor} ${tier.color} rounded-2xl p-8 flex flex-col justify-between backface-hidden shadow-lg border-2 border-gray-200 group-hover:border-[#C69C3C] group-hover:bg-[#C69C3C] group-hover:text-white transition-all duration-500`}>
                   <div>
                     <h3 className="text-2xl font-bold mb-1">{tier.title}</h3>
                     <p className="text-2xl font-bold">{tier.subtitle}</p>
                   </div>
                   <div className="flex justify-end">
-                    <div className="w-8 h-8 rounded-full border-2 border-white/80 flex items-center justify-center hover:bg-white/20 transition-colors">
+                    <div className="w-8 h-8 rounded-full border-2 border-gray-900 group-hover:border-white flex items-center justify-center group-hover:bg-white/20 transition-all duration-500">
                       <ArrowRight className="w-4 h-4" />
                     </div>
                   </div>
                 </div>
                 
                 {/* Back of card */}
-                <div className={`absolute inset-0 ${tier.bgColor} ${tier.color} rounded-2xl p-8 flex flex-col justify-center items-center backface-hidden rotate-y-180 shadow-lg`}>
+                <div className={`absolute inset-0 bg-[#C69C3C] text-white rounded-2xl p-8 flex flex-col justify-center items-center backface-hidden rotate-y-180 shadow-lg border-2 border-[#C69C3C]`}>
                   <h3 className="text-xl font-bold mb-3 text-center">Explore {tier.title}</h3>
                   <p className="text-sm text-center mb-4 opacity-90">
                     Discover amazing deals and packages tailored for you

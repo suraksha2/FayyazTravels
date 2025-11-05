@@ -1,46 +1,31 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
-
-const destinations = [
-  {
-    id: 1,
-    country: "Sweden",
-    slug: "sweden",
-    image: "https://images.pexels.com/photos/3026364/pexels-photo-3026364.jpeg?auto=compress&cs=tinysrgb&w=1200",
-  },
-  {
-    id: 2,
-    country: "Norway",
-    slug: "norway",
-    image: "https://images.pexels.com/photos/3889891/pexels-photo-3889891.jpeg?auto=compress&cs=tinysrgb&w=1200",
-  },
-  {
-    id: 3,
-    country: "Spain",
-    slug: "spain",
-    image: "https://images.pexels.com/photos/5282269/pexels-photo-5282269.jpeg?auto=compress&cs=tinysrgb&w=1200",
-  },
-  {
-    id: 4,
-    country: "Italy",
-    slug: "italy",
-    image: "https://images.pexels.com/photos/2064827/pexels-photo-2064827.jpeg?auto=compress&cs=tinysrgb&w=1200",
-  },
-  {
-    id: 5,
-    country: "Greece",
-    slug: "greece",
-    image: "https://images.pexels.com/photos/1010657/pexels-photo-1010657.jpeg?auto=compress&cs=tinysrgb&w=1200",
-  }
-]
+import { getPopularDestinations, PopularDestination } from '@/lib/api'
 
 export default function TravelInspirationSection() {
+  const [destinations, setDestinations] = useState<PopularDestination[]>([])
+  const [loading, setLoading] = useState(true)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [desktopIndex, setDesktopIndex] = useState(0)
   const cardsPerPage = 3
+
+  useEffect(() => {
+    const fetchDestinations = async () => {
+      try {
+        const data = await getPopularDestinations(6)
+        setDestinations(data)
+      } catch (error) {
+        console.error('Error fetching popular destinations:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDestinations()
+  }, [])
 
   const nextSlide = () => {
     if (currentIndex < destinations.length - 1) {
@@ -64,6 +49,19 @@ export default function TravelInspirationSection() {
     if (desktopIndex > 0) {
       setDesktopIndex(Math.max(0, desktopIndex - cardsPerPage))
     }
+  }
+
+  if (loading) {
+    return (
+      <section className="bg-white py-8 md:py-16 px-4">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-2xl md:text-3xl font-bold mb-8 md:mb-12 text-center">Travel Inspiration</h2>
+          <div className="flex justify-center items-center py-12">
+            <div className="text-gray-500">Loading destinations...</div>
+          </div>
+        </div>
+      </section>
+    )
   }
 
   return (

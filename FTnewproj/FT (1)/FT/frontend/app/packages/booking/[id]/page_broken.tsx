@@ -66,10 +66,10 @@ const formSchema = z.object({
   }),
 })
 
-// Airwallex configuration
+// Airwallex configuration (DO NOT include secret API keys in client code)
 const AIRWALLEX_CONFIG = {
   clientId: 'x2uUrKZcR8OXL3gQOICUKw',
-  apiKey: '8d9c682b097318be09d63724c908d02d490ce74eba9970657a6ed403b89140d99315ffdbc7dac9b29b442c3357c8b48e',
+  // apiKey intentionally omitted for security
   environment: 'demo' // Use 'prod' for production
 }
 
@@ -94,7 +94,6 @@ export default function BookingPage() {
   const [paymentIntent, setPaymentIntent] = useState<any>(null)
   const [passengerData, setPassengerData] = useState<any>(null)
   const [contactData, setContactData] = useState<any>(null)
-  const [travelDate, setTravelDate] = useState('')
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -204,7 +203,7 @@ export default function BookingPage() {
       console.log('Payment intent created:', intent)
       
       // Check if this is demo mode
-      if (intent.id.startsWith('demo_intent_')) {
+      if (intent.id && intent.id.startsWith('demo_intent_')) {
         console.log('Demo mode detected - showing demo payment form')
         const cardContainer = document.getElementById('airwallex-card')
         if (cardContainer) {
@@ -261,10 +260,10 @@ export default function BookingPage() {
     console.log('Payment intent:', paymentIntent)
 
     // Check if we're in demo mode (fake payment intent)
-    if (paymentIntent && paymentIntent.id.startsWith('demo_intent_')) {
+    if (paymentIntent && paymentIntent.id && paymentIntent.id.startsWith('demo_intent_')) {
       console.log('Demo mode detected - simulating payment success')
       // In demo mode, simulate successful payment
-      await new Promise(resolve => setTimeout(resolve, 2000)) // Simulate processing time
+      await new Promise(resolve => setTimeout(resolve, 1200)) // Simulate processing time
       return {
         id: paymentIntent.id,
         status: 'succeeded',
@@ -290,7 +289,7 @@ export default function BookingPage() {
       console.log('Attempting to confirm payment with Airwallex...')
       
       // Get the card element
-      const cardElement = window.Airwallex.getElement('card')
+      const cardElement = window.Airwallex.getElement ? window.Airwallex.getElement('card') : null
       if (!cardElement) {
         console.error('Card element not found')
         alert('Payment form not ready. Please refresh the page and try again.')
@@ -347,9 +346,10 @@ export default function BookingPage() {
     }
   }
 
-  const extractPrice = (content: string) => {
-    const priceMatch = content?.match(/\$([\\d,]+)/)
-    return priceMatch ? priceMatch[1] : '2,845'
+  const extractPrice = (content: string = '') => {
+    // Match $123,456 or 123,456 (tolerant)
+    const priceMatch = content.match(/\$?([\d,]+)/)
+    return priceMatch ? priceMatch[1] : '2845'
   }
 
   const extractDuration = (dayNight: string) => {
@@ -393,7 +393,7 @@ export default function BookingPage() {
   }
 
   const calculateTotal = () => {
-    const basePrice = parseInt(extractPrice(packageData?.p_content || '').replace(',', ''))
+    const basePrice = parseInt(extractPrice(packageData?.p_content || '').replace(/,/g, ''))
     const adultPrice = basePrice * adults
     const childPrice = basePrice * 0.7 * children // 30% discount for children
     const infantPrice = 0 // Infants usually free
@@ -403,14 +403,14 @@ export default function BookingPage() {
   const handleStepNavigation = () => {
     if (currentStep === 1) {
       // Step 1: Room selection - just move to next step
-      if (!travelDate) {
+      const selectedDate = form.getValues('travelDate')
+      if (!selectedDate) {
         alert('Please select a travel date')
         return
       }
       setCurrentStep(2)
     } else if (currentStep === 2) {
       // Step 2: Passenger details - validation handled by PassengerDetailsForm
-      // This will be called by the PassengerDetailsForm component
       setCurrentStep(3)
     }
   }
@@ -448,7 +448,7 @@ export default function BookingPage() {
         customer_name: `${contactData?.firstName} ${contactData?.lastName}`,
         customer_email: contactData?.email,
         customer_phone: contactData?.phone,
-        travel_date: travelDate,
+        travel_date: form.getValues('travelDate'),
         pax: adults + children + infants, // Backend expects total pax
         total_amount: calculateTotal(),
         special_requests: passengerData?.map((p: any) => p.specialRequests).filter(Boolean).join('; ') || null,
@@ -478,11 +478,11 @@ export default function BookingPage() {
       const confirmationData = {
         bookingId: savedBooking.id,
         packageId: id,
-        packageName: packageData.p_name,
+        packageName: packageData?.p_name,
         customerName: `${contactData?.firstName} ${contactData?.lastName}`,
         customerEmail: contactData?.email,
         customerPhone: contactData?.phone,
-        travelDate: travelDate,
+        travelDate: form.getValues('travelDate'),
         adults: adults,
         children: children,
         infants: infants,
@@ -492,7 +492,9 @@ export default function BookingPage() {
       }
       
       // Store confirmation data in sessionStorage for the confirmation page
-      sessionStorage.setItem('bookingConfirmation', JSON.stringify(confirmationData))
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('bookingConfirmation', JSON.stringify(confirmationData))
+      }
       
       router.push('/booking-confirmation')
       
@@ -733,8 +735,8 @@ export default function BookingPage() {
                       <h4 className="font-semibold mb-3">Select Travel Date</h4>
                       <Input
                         type="date"
-                        value={travelDate}
-                        onChange={(e) => setTravelDate(e.target.value)}
+                        value={form.watch('travelDate') || ''}
+                        onChange={(e) => form.setValue('travelDate', e.target.value)}
                         min={new Date().toISOString().split('T')[0]}
                         className="w-full"
                         required
@@ -745,7 +747,7 @@ export default function BookingPage() {
                       <Button 
                         onClick={handleStepNavigation}
                         className="w-full bg-[#002147] hover:bg-[#001a38] text-white py-6 text-lg"
-                        disabled={!travelDate}
+                        disabled={!form.watch('travelDate')}
                       >
                         Continue to Passenger Details
                       </Button>
@@ -807,104 +809,103 @@ export default function BookingPage() {
                       </p>
                     </div>
                   </div>
+
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                      <FormField
+                        control={form.control}
+                        name="paymentMethod"
+                        render={({ field }) => (
+                          <FormItem className="space-y-3">
+                            <FormLabel>Payment Method</FormLabel>
+                            <FormControl>
+                              <RadioGroup
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                                className="flex flex-col space-y-1"
+                              >
+                                <FormItem className="flex items-center space-x-3 space-y-0">
+                                  <FormControl>
+                                    <RadioGroupItem value="credit-card" />
+                                  </FormControl>
+                                  <FormLabel className="font-normal flex items-center gap-2">
+                                    <CreditCard className="w-4 h-4" />
+                                    Credit Card
+                                  </FormLabel>
+                                </FormItem>
+                                <FormItem className="flex items-center space-x-3 space-y-0">
+                                  <FormControl>
+                                    <RadioGroupItem value="bank-transfer" />
+                                  </FormControl>
+                                  <FormLabel className="font-normal flex items-center gap-2">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                    </svg>
+                                    Bank Transfer
+                                  </FormLabel>
+                                </FormItem>
+                                <FormItem className="flex items-center space-x-3 space-y-0">
+                                  <FormControl>
+                                    <RadioGroupItem value="paypal" />
+                                  </FormControl>
+                                  <FormLabel className="font-normal flex items-center gap-2">
+                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                      <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.384a.64.64 0 0 1 .632-.537h6.61c2.667 0 4.719.892 5.778 2.586.488.776.78 1.625.887 2.588.107.962.054 2.054-.16 3.27l-.023.116c-.707 3.664-2.973 5.51-6.736 5.51h-1.95c-.525 0-.963.401-1.026.923l-.566 3.495a.64.64 0 0 1-.632.537l-.052-.001z" />
+                                    </svg>
+                                    PayPal
+                                  </FormLabel>
+                                </FormItem>
+                              </RadioGroup>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="termsAccepted"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md p-4 border">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>
+                                I agree to the Terms and Conditions and Privacy Policy
+                              </FormLabel>
+                              <FormMessage />
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <div className="flex gap-4">
+                        <Button 
+                          type="button"
+                          variant="outline"
+                          onClick={() => handleBackToStep(2)}
+                          className="flex-1"
+                          disabled={isSubmitting}
+                        >
+                          Back
+                        </Button>
+                        
+                        <Button 
+                          type="submit" 
+                          className="flex-1 bg-[#002147] hover:bg-[#001a38] text-white py-6 text-lg"
+                          disabled={isSubmitting}
+                        >
+                          {isSubmitting ? 'Processing...' : 'Complete Booking'}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
                 </>
               )}
-              
-              {currentStep === 3 && (
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <FormField
-                      control={form.control}
-                      name="paymentMethod"
-                      render={({ field }) => (
-                        <FormItem className="space-y-3">
-                          <FormLabel>Payment Method</FormLabel>
-                          <FormControl>
-                            <RadioGroup
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                              className="flex flex-col space-y-1"
-                            >
-                              <FormItem className="flex items-center space-x-3 space-y-0">
-                                <FormControl>
-                                  <RadioGroupItem value="credit-card" />
-                                </FormControl>
-                                <FormLabel className="font-normal flex items-center gap-2">
-                                  <CreditCard className="w-4 h-4" />
-                                  Credit Card
-                                </FormLabel>
-                              </FormItem>
-                              <FormItem className="flex items-center space-x-3 space-y-0">
-                                <FormControl>
-                                  <RadioGroupItem value="bank-transfer" />
-                                </FormControl>
-                                <FormLabel className="font-normal flex items-center gap-2">
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                                  </svg>
-                                  Bank Transfer
-                                </FormLabel>
-                              </FormItem>
-                              <FormItem className="flex items-center space-x-3 space-y-0">
-                                <FormControl>
-                                  <RadioGroupItem value="paypal" />
-                                </FormControl>
-                                <FormLabel className="font-normal flex items-center gap-2">
-                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.384a.64.64 0 0 1 .632-.537h6.61c2.667 0 4.719.892 5.778 2.586.488.776.78 1.625.887 2.588.107.962.054 2.054-.16 3.27l-.023.116c-.707 3.664-2.973 5.51-6.736 5.51h-1.95c-.525 0-.963.401-1.026.923l-.566 3.495a.64.64 0 0 1-.632.537l-.052-.001z" />
-                                  </svg>
-                                  PayPal
-                                </FormLabel>
-                              </FormItem>
-                            </RadioGroup>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="termsAccepted"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md p-4 border">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                          <div className="space-y-1 leading-none">
-                            <FormLabel>
-                              I agree to the Terms and Conditions and Privacy Policy
-                            </FormLabel>
-                            <FormMessage />
-                          </div>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <div className="flex gap-4">
-                      <Button 
-                        type="button"
-                        variant="outline"
-                        onClick={() => handleBackToStep(2)}
-                        className="flex-1"
-                        disabled={isSubmitting}
-                      >
-                        Back
-                      </Button>
-                      
-                      <Button 
-                        type="submit" 
-                        className="flex-1 bg-[#002147] hover:bg-[#001a38] text-white py-6 text-lg"
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? 'Processing...' : 'Complete Booking'}
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
             </div>
           </div>
 
@@ -922,7 +923,7 @@ export default function BookingPage() {
                 {/* Travel Dates */}
                 <div className="text-sm text-gray-600 mb-4">
                   {(() => {
-                    const dates = formatTravelDates(travelDate)
+                    const dates = formatTravelDates(form.watch('travelDate') || '')
                     const duration = extractDuration(packageData?.day_night || '')
                     return (
                       <>
@@ -951,7 +952,7 @@ export default function BookingPage() {
               <div className="pt-4">
                 <div className="text-sm text-gray-600 mb-4">
                   {(() => {
-                    const dates = formatTravelDates(travelDate)
+                    const dates = formatTravelDates(form.watch('travelDate') || '')
                     return `${dates.start} - ${dates.end}`
                   })()}
                 </div>
@@ -964,102 +965,6 @@ export default function BookingPage() {
                 <h4 className="font-semibold mb-4">Need help with your booking?</h4>
                 <p className="text-sm text-gray-600 mb-4">
                   Leave an inquiry and we will get back to you soon.
-                </p>
-                <div className="space-y-3">
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start gap-2 text-[#002147] border-[#002147]"
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                    Live Chat
-                  </Button>
-                  <div className="flex items-center justify-center gap-2 text-[#002147]">
-                    <Phone className="w-5 h-5" />
-                    <span className="font-semibold">Call Us</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </main>
-    </>
-  )
-}
-                          <span className="flex items-center gap-2">
-                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                            Processing...
-                          </span>
-                        ) : (
-                          "Complete Booking"
-                        )}
-                      </Button>
-                    )}
-                  </div>
-                </form>
-              </Form>
-            </div>
-          </div>
-
-          {/* Package Summary */}
-          <div>
-            <div className="bg-white rounded-lg shadow-lg p-6 sticky top-24">
-              <h2 className="text-xl font-semibold mb-4">Summary</h2>
-              
-              <div className="mb-6">
-                <h3 className="font-medium text-lg mb-2">{packageData.p_name}</h3>
-                <div className="text-sm text-gray-600 mb-4">
-                  {packageData.day_night || '7D | 6N'}
-                </div>
-                
-                {/* Travel Dates */}
-                <div className="text-sm text-gray-600 mb-4">
-                  {(() => {
-                    const travelDate = form.watch('travelDate') || ''
-                    const dates = formatTravelDates(travelDate)
-                    const duration = extractDuration(packageData?.day_night || '')
-                    return (
-                      <>
-                        {dates.start} - {dates.end}<br />
-                        {duration.days} days ({adults + children + infants} guest{(adults + children + infants) > 1 ? 's' : ''} • 1 Room)
-                      </>
-                    )
-                  })()}
-                </div>
-              </div>
-
-              <div className="border-t border-b py-4 space-y-2">
-                <div className="flex justify-between text-lg">
-                  <span>Package</span>
-                  <div className="text-right">
-                    <div className="line-through text-gray-400 text-sm">
-                      SGD $ {(calculateTotal() * 1.15).toLocaleString()}
-                    </div>
-                    <div className="font-bold text-[#002147]">
-                      SGD $ {calculateTotal().toLocaleString()}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4">
-                <div className="text-sm text-gray-600 mb-4">
-                  {(() => {
-                    const travelDate = form.watch('travelDate') || ''
-                    const dates = formatTravelDates(travelDate)
-                    return `${dates.start} - ${dates.end}`
-                  })()}
-                </div>
-                <div className="text-sm text-gray-600">
-                  {extractDuration(packageData?.day_night || '').days} days (1 Room • {adults + children + infants} guest{(adults + children + infants) > 1 ? 's' : ''})
-                </div>
-              </div>
-
-              <div className="mt-6 pt-6 border-t">
-                <h4 className="font-semibold mb-4">Need help with your booking?</h4>
-                <p className="text-sm text-gray-600 mb-4">
-                  leave an inquiry and we will get back to you soon.
                 </p>
                 <div className="space-y-3">
                   <Button 

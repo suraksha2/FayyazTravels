@@ -58,7 +58,7 @@ export default function ThailandPackagesPage() {
   }, []);
 
   // Helper function to format price
-  const formatPrice = (price: number | undefined, currency: string = 'SGD'): string => {
+  const formatPrice = (price: number | undefined, currency: string = 'S'): string => {
     if (!price) return 'Price on request';
     return `S$${price.toLocaleString()}`;
   };

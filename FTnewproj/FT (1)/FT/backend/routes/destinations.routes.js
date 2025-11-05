@@ -8,11 +8,8 @@ module.exports = async function (fastify, opts) {
   // Get all destinations (alternative route)
   fastify.get('/destination-list', controller.getAll);
   
-  // Get destination by ID
-  fastify.get('/destination/:id', controller.getById);
-  
-  // Get destination by slug
-  fastify.get('/destination/slug/:slug', controller.getBySlug);
+  // Get destination by slug (prioritize slug-based URLs)
+  fastify.get('/destination/:slug', controller.getBySlug);
   
   // Get packages for a specific destination
   fastify.get('/destination/:slug/packages', controller.getPackagesByDestination);

@@ -42,9 +42,14 @@ export default function PackageDetailPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+
     const fetchPackageData = async () => {
       try {
-        const response = await fetch(`http://localhost:3003/packages/slug/${slug}`)
+        const response = await fetch(`http://localhost:3003/packages/${slug}`, {
+          signal: controller.signal
+        })
         if (!response.ok) {
           throw new Error('Failed to fetch package data')
         }
@@ -55,17 +60,28 @@ export default function PackageDetailPage() {
           throw new Error('Package not found or invalid data')
         }
         
-        setPackageData(data)
+        if (isMounted) {
+          setPackageData(data)
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred')
+        if (isMounted && (err as any)?.name !== 'AbortError') {
+          setError(err instanceof Error ? err.message : 'An error occurred')
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
     if (slug) {
       fetchPackageData()
     }
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
   }, [slug])
 
   // Helper function to clean HTML content
@@ -256,11 +272,11 @@ export default function PackageDetailPage() {
                 <div className="text-center mb-6">
                   <div className="text-sm text-gray-500 mb-2">Starting from</div>
                   <div className="text-4xl font-bold text-[#002147] mb-2">
-                    {packageData.package_currency || 'S'}${getPrice(packageData).toLocaleString()}
+                    {packageData.package_currency || 'S'} ${getPrice(packageData).toLocaleString()}
                   </div>
                   {packageData.savings && packageData.savings > 0 && (
                     <div className="text-sm text-green-600 font-medium">
-                      You save {packageData.package_currency || 'S'}${packageData.savings.toLocaleString()}
+                      You save {packageData.package_currency || 'S'} ${packageData.savings.toLocaleString()}
                     </div>
                   )}
                   <div className="text-sm text-gray-500 mt-1">Best Price Guaranteed</div>
@@ -335,7 +351,7 @@ export default function PackageDetailPage() {
             <Button className="bg-white text-[#8B1F41] hover:bg-white/90 px-8 py-3">
               Contact Expert
             </Button>
-            <Button variant="outline" className="border-white text-white hover:bg-white hover:text-[#8B1F41] px-8 py-3">
+            <Button variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-[#8B1F41] hover:border-white transition-all duration-300 px-8 py-3">
               Call Now: +65 6235 3900
             </Button>
           </div>
